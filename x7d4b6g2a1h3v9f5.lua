@@ -201,6 +201,28 @@ local SaveManager = {} do
 		end
 	end
 
+	function SaveManager:RemoveAutoloadConfig()
+		local autoloadFile = self.Folder .. "/settings/autoload.txt"
+		if isfile(autoloadFile) then
+			writefile(autoloadFile, "") -- Clear the file
+			self.Library:Notify({
+				Title = "Interface",
+				Content = "Config loader",
+				SubContent = "Autoload config has been removed",
+				Duration = 7
+			})
+			return true
+		else
+			self.Library:Notify({
+				Title = "Interface",
+				Content = "Config loader",
+				SubContent = "No autoload config is set",
+				Duration = 7
+			})
+			return false
+		end
+	end
+
 	function SaveManager:BuildConfigSection(tab)
 		assert(self.Library, "Must set SaveManager.Library")
 
@@ -304,6 +326,16 @@ local SaveManager = {} do
 				Duration = 7
 			})
 		end})
+
+		section:AddButton({
+			Title = "Remove Autoload",
+			Callback = function()
+				local success = SaveManager:RemoveAutoloadConfig()
+				if success then
+					AutoloadButton:SetDesc("Current autoload config: none")
+				end
+			end
+		})
 
 		if isfile(self.Folder .. "/settings/autoload.txt") then
 			local name = readfile(self.Folder .. "/settings/autoload.txt")
