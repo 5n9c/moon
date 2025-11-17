@@ -2767,7 +2767,7 @@ ElementsTable.Dropdown = (function()
 			Padding = UDim.new(0, 3),
 		})
 
-		-- CORREÇÃO: ScrollingFrame com ZIndex alto e sem cortar
+		-- CORREÇÃO: ScrollingFrame com tamanho correto
 		local DropdownScrollFrame = New("ScrollingFrame", {
 			Size = UDim2.new(1, -10, 1, -10),
 			Position = UDim2.fromOffset(5, 5),
@@ -2778,48 +2778,44 @@ ElementsTable.Dropdown = (function()
 			BorderSizePixel = 0,
 			CanvasSize = UDim2.fromScale(0, 0),
 			ScrollingDirection = Enum.ScrollingDirection.Y,
-			AutomaticCanvasSize = Enum.AutomaticSize.Y, -- CORREÇÃO: Tamanho automático
-			ZIndex = 60, -- CORREÇÃO: ZIndex alto
-			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ZIndex = 10,
 		}, {
 			DropdownListLayout,
 		})
 
-		-- CORREÇÃO: DropdownHolderFrame com ZIndex alto
+		-- CORREÇÃO: Frame principal sem cortar elementos
 		local DropdownHolderFrame = New("Frame", {
 			Size = UDim2.fromScale(1, 0.6),
-			BackgroundTransparency = 0.05, -- CORREÇÃO: Visível
+			BackgroundTransparency = 0.05,
 			BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-			ZIndex = 55, -- CORREÇÃO: ZIndex alto
-			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
+			ZIndex = 5,
+			ClipsDescendants = false, -- IMPORTANTE: Não cortar elementos
 		}, {
 			DropdownScrollFrame,
 			New("UICorner", {
 				CornerRadius = UDim.new(0, 7),
-				ZIndex = 55,
 			}),
 			New("UIStroke", {
 				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 				ThemeTag = {
 					Color = "DropdownBorder",
 				},
-				ZIndex = 55,
 			}),
 		})
 
-		-- CORREÇÃO: DropdownHolderCanvas com ZIndex alto
+		-- CORREÇÃO: Canvas sem cortar elementos
 		local DropdownHolderCanvas = New("Frame", {
 			BackgroundTransparency = 1,
-			Size = UDim2.fromOffset(170, 0), -- Começa com altura 0
+			Size = UDim2.fromOffset(170, 0),
 			Parent = Library.GUI,
 			Visible = false,
-			ZIndex = 50,
-			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
+			ZIndex = 1,
+			ClipsDescendants = false, -- IMPORTANTE: Não cortar elementos
 		}, {
 			DropdownHolderFrame,
 			New("UISizeConstraint", {
 				MinSize = Vector2.new(170, 0),
-				ZIndex = 50,
 			}),
 		})
 		table.insert(Library.OpenFrames, DropdownHolderCanvas)
@@ -2835,14 +2831,14 @@ ElementsTable.Dropdown = (function()
 
 		local ListSizeX = 0
 		local function RecalculateListSize()
-			-- CORREÇÃO: Tamanho baseado no conteúdo real
+			-- Tamanho baseado no número de opções
 			local optionCount = #Dropdown.Values
 			local optionHeight = 32
 			local padding = 3
 			local totalPadding = (optionCount - 1) * padding
 			local contentHeight = (optionCount * optionHeight) + totalPadding + 10
 			
-			local maxHeight = 150 -- Altura máxima menor para 3 opções
+			local maxHeight = 150
 			local targetHeight = math.min(contentHeight, maxHeight)
 			
 			DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, targetHeight)
@@ -2893,12 +2889,7 @@ ElementsTable.Dropdown = (function()
 			DropdownDisplay.Interactable = Dropdown.Searchable
 			if ScrollFrame then ScrollFrame.ScrollingEnabled = false end
 			
-			-- CORREÇÃO: Garantir que está visível e com ZIndex alto
 			DropdownHolderCanvas.Visible = true
-			DropdownHolderCanvas.ZIndex = 50
-			DropdownHolderFrame.ZIndex = 55
-			DropdownScrollFrame.ZIndex = 60
-			
 			RecalculateListPosition()
 			RecalculateListSize()
 			
@@ -2991,7 +2982,7 @@ ElementsTable.Dropdown = (function()
 					Position = UDim2.fromOffset(-1, 16), 
 					AnchorPoint = Vector2.new(0, 0.5), 
 					ThemeTag = { BackgroundColor3 = "Accent" },
-					ZIndex = 65, -- CORREÇÃO: ZIndex alto
+					ZIndex = 15,
 				}, { 
 					New("UICorner", { CornerRadius = UDim.new(0, 2) }) 
 				})
@@ -3006,14 +2997,14 @@ ElementsTable.Dropdown = (function()
 					Position = UDim2.fromOffset(10, 0), 
 					Name = "ButtonLabel", 
 					ThemeTag = { TextColor3 = "Text" },
-					ZIndex = 65, -- CORREÇÃO: ZIndex alto
+					ZIndex = 15,
 				})
 				
-				-- CORREÇÃO: Botão com ZIndex muito alto e tamanho completo
+				-- CORREÇÃO: Botão com ZIndex alto e tamanho completo
 				local Button = New("TextButton", { 
-					Size = UDim2.new(1, 0, 0, 32), -- Largura total
+					Size = UDim2.new(1, 0, 0, 32),
 					BackgroundTransparency = 1, 
-					ZIndex = 65, -- CORREÇÃO CRÍTICA: ZIndex MUITO ALTO
+					ZIndex = 15,
 					Text = "", 
 					Parent = DropdownScrollFrame,
 					AutoButtonColor = false,
@@ -3021,10 +3012,7 @@ ElementsTable.Dropdown = (function()
 				}, { 
 					ButtonSelector, 
 					ButtonLabel, 
-					New("UICorner", { 
-						CornerRadius = UDim.new(0, 6),
-						ZIndex = 65,
-					}) 
+					New("UICorner", { CornerRadius = UDim.new(0, 6) }) 
 				})
 
 				local function UpdateButton()
@@ -3053,7 +3041,7 @@ ElementsTable.Dropdown = (function()
 						if Dropdown.Value == Value and not Config.AllowNull then return end
 						Dropdown.Value = (Dropdown.Value == Value and nil or Value)
 						for _, otherButton in pairs(Buttons) do otherButton.UpdateButton() end
-						Dropdown:Close() -- Fecha ao selecionar em modo single
+						Dropdown:Close()
 					end
 					UpdateButton()
 					Dropdown:Display()
