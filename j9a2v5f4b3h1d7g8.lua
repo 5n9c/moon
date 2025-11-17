@@ -2718,13 +2718,13 @@ ElementsTable.Dropdown = (function()
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 			BackgroundTransparency = 1,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			Interactable = Dropdown.Searchable,
+			Interactable = false,
 			ThemeTag = {
 				TextColor3 = "Text",
 				PlaceholderColor3 = "Text"
 			},
 		})
-
+        
 		local DropdownIco = New("ImageLabel", {
 			Image = "rbxassetid://89769124034919",
 			Size = UDim2.fromOffset(16, 16),
@@ -2836,20 +2836,17 @@ ElementsTable.Dropdown = (function()
 		end
 
 		local ListSizeX = 0
-		--[[ MODIFICAÇÃO ABAIXO ]]--
 		local function RecalculateListSize()
-			-- Adiciona um preenchimento extra para garantir que a área clicável cubra todos os botões.
-			local extraPadding = 15
-	
+			task.wait()
 			if #Dropdown.Values > 10 then
-				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, 392 + extraPadding)
+				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, 392)
 			else
-				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, DropdownListLayout.AbsoluteContentSize.Y + 10 + extraPadding)
+				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, DropdownListLayout.AbsoluteContentSize.Y + 10)
 			end
 		end
-		--[[ FIM DA MODIFICAÇÃO ]]--
 
 		local function RecalculateCanvasSize()
+            task.wait()
 			DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0, DropdownListLayout.AbsoluteContentSize.Y)
 		end
 
@@ -2865,8 +2862,9 @@ ElementsTable.Dropdown = (function()
 				Dropdown:Open()
 			end
 		end)
-
+        
 		Creator.AddSignal(DropdownDisplay:GetPropertyChangedSignal("Text"), function()
+            if not Dropdown.Opened or not Dropdown.Searchable then return end
 			local Text = DropdownDisplay.Text:lower()
 			for _, Element in ipairs(DropdownScrollFrame:GetChildren()) do
 				if Element:IsA("TextButton") and Element.ButtonLabel then
@@ -2874,11 +2872,11 @@ ElementsTable.Dropdown = (function()
 					Element.Visible = (Text == "" or Value:find(Text, 1, true))
 				end
 			end
-			RecalculateListPosition()
-			RecalculateListSize()
+			RecalculateCanvasSize()
+            RecalculateListSize()
+            RecalculateListPosition()
 		end)
 
-		Creator.AddSignal(DropdownDisplay.Focused, function() DropdownDisplay.Text = "" end)
 		Creator.AddSignal(DropdownDisplay.FocusLost, function()
 			task.wait()
 			if not DropdownDisplay:IsFocused() then
@@ -2895,8 +2893,8 @@ ElementsTable.Dropdown = (function()
 				if mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y then
 					return
 				end
-
-				local AbsPos, AbsSize = DropdownHolderFrame.AbsolutePosition, DropdownHolderFrame.AbsoluteSize
+				
+				local AbsPos, AbsSize = DropdownHolderCanvas.AbsolutePosition, DropdownHolderCanvas.AbsoluteSize
 				if mousePos.X < AbsPos.X or mousePos.X > AbsPos.X + AbsSize.X or mousePos.Y < AbsPos.Y or mousePos.Y > AbsPos.Y + AbsSize.Y then
 					Dropdown:Close()
 				end
@@ -2907,10 +2905,20 @@ ElementsTable.Dropdown = (function()
 		function Dropdown:Open()
 			if Dropdown.Opened then return end
 			Dropdown.Opened = true
-			DropdownDisplay.Interactable = Dropdown.Searchable
+            
+            if Dropdown.Searchable then
+                DropdownDisplay.PlaceholderText = "Search..."
+                DropdownDisplay.Text = ""
+                DropdownDisplay.Interactable = true
+            end
+			
 			if ScrollFrame then ScrollFrame.ScrollingEnabled = false end
 			DropdownHolderCanvas.Visible = true
+			
+			RecalculateCanvasSize()
+            RecalculateListSize()
 			RecalculateListPosition()
+            
 			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Size = UDim2.fromScale(1, 1) }):Play()
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 0 }):Play()
 			if Dropdown.Searchable then DropdownDisplay:CaptureFocus() end
@@ -2919,19 +2927,26 @@ ElementsTable.Dropdown = (function()
 		function Dropdown:Close()
 			if not Dropdown.Opened then return end
 			Dropdown.Opened = false
+
+            DropdownDisplay.Interactable = false
+			DropdownDisplay:ReleaseFocus(false)
+            if Dropdown.Searchable then DropdownDisplay.Text = "" end
+
 			if ScrollFrame then ScrollFrame.ScrollingEnabled = true end
-			DropdownDisplay.Interactable = false
+
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 180 }):Play()
-			task.delay(0, function()
+			
+			local holderTween = TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.fromScale(1, 0.6)})
+			holderTween.Completed:Once(function()
 				if not Dropdown.Opened then
 					DropdownHolderCanvas.Visible = false
-					DropdownHolderFrame.Size = UDim2.fromScale(1, 0.6)
 				end
 			end)
-			DropdownDisplay:ReleaseFocus(false)
-			Dropdown:Display()
+			holderTween:Play()
+            
+            Dropdown:Display()
 		end
-
+		
 		function Dropdown:Display()
 			local Str = ""
 			if Config.Multi then
@@ -2940,7 +2955,12 @@ ElementsTable.Dropdown = (function()
 			else
 				Str = Dropdown.Value or ""
 			end
-			DropdownDisplay.PlaceholderText = (Str == "" and "--" or Str)
+			
+            if Dropdown.Searchable and Dropdown.Opened then
+            else
+			    DropdownDisplay.Text = ""
+			    DropdownDisplay.PlaceholderText = (Str == "" and "--" or Str)
+            end
 		end
 		
 		function Dropdown:BuildDropdownList()
@@ -2968,11 +2988,17 @@ ElementsTable.Dropdown = (function()
 					if Config.Multi then
 						Dropdown.Value[Value] = not Dropdown.Value[Value]
 					else
-						if Dropdown.Value == Value and not Config.AllowNull then return end
-						Dropdown.Value = (Dropdown.Value == Value and nil or Value)
-						for _, otherButton in pairs(Buttons) do otherButton.UpdateButton() end
+                        if Dropdown.Value == Value and not Config.AllowNull then
+                        else
+						    Dropdown.Value = (Dropdown.Value == Value and nil or Value)
+							Dropdown:Close()
+                        end
 					end
-					UpdateButton()
+
+                    for _, b in pairs(Buttons) do
+						b.UpdateButton()
+					end
+
 					Dropdown:Display()
 					Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
 					if Dropdown.Changed then Library:SafeCallback(Dropdown.Changed, Dropdown.Value) end
@@ -2985,11 +3011,14 @@ ElementsTable.Dropdown = (function()
 			ListSizeX = 0; for Button, _ in pairs(Buttons) do if Button.ButtonLabel and Button.ButtonLabel.TextBounds.X > ListSizeX then ListSizeX = Button.ButtonLabel.TextBounds.X end end
 			ListSizeX = ListSizeX + 30
 			
-			RecalculateCanvasSize(); RecalculateListSize()
+			task.defer(function()
+				RecalculateCanvasSize()
+				RecalculateListSize()
+			end)
 		end
 
 		function Dropdown:SetValues(NewValues) Dropdown.Values = NewValues; Dropdown:BuildDropdownList() end
-		function Dropdown:OnChanged(Func) Dropdown.Changed = Func; Func(Dropdown.Value) end
+		function Dropdown:OnChanged(Func) Dropdown.Changed = Func; if Dropdown.Value ~= nil then Func(Dropdown.Value) end end
 		
 		function Dropdown:SetValue(Val)
 			if Dropdown.Multi then
@@ -3003,7 +3032,11 @@ ElementsTable.Dropdown = (function()
 			if Dropdown.Changed then Library:SafeCallback(Dropdown.Changed, Dropdown.Value) end
 		end
 
-		function Dropdown:Destroy() DropdownFrame:Destroy(); if Library.Options[Idx] then Library.Options[Idx] = nil end end
+		function Dropdown:Destroy()
+            if DropdownHolderCanvas then DropdownHolderCanvas:Destroy() end
+            DropdownFrame:Destroy()
+            if Library.Options[Idx] then Library.Options[Idx] = nil end
+        end
 		
 		Dropdown:SetValue(Config.Default)
 		
