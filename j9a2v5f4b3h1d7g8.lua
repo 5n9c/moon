@@ -1722,15 +1722,15 @@ Components.Notification = (function()
 
 	local Notification = {}
 
-	function Notification:Init(Parent)
+	function Notification:Init(GUI)
 		Library.ActiveNotifications = Library.ActiveNotifications or {}
 
 		Notification.Holder = New("Frame", {
-			Position = UDim2.new(1, -30, 1, -30), 
+			Position = UDim2.new(1, -10, 1, -10), 
 			Size = UDim2.new(0, 270, 1, 0),
 			AnchorPoint = Vector2.new(1, 1),
 			BackgroundTransparency = 1,
-			Parent = Parent,
+			Parent = GUI,
 		}, {
 			New("UIListLayout", {
 				HorizontalAlignment = Enum.HorizontalAlignment.Right,
