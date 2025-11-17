@@ -2672,6 +2672,8 @@ ElementsTable.Toggle = (function()
 
 	return Element
 end)()
+-- VERSÃO FINAL: COM A CORREÇÃO DO CLIQUE NO ÚLTIMO ITEM --
+
 ElementsTable.Dropdown = (function()
 	local Element = {}
 	Element.__index = Element
@@ -2726,7 +2728,7 @@ ElementsTable.Dropdown = (function()
 		})
 
 		local DropdownIco = New("ImageLabel", {
-			Image = "rbxassetid://89769124034919",
+			Image = "rbxassetid://10709790948", -- Ícone corrigido
 			Size = UDim2.fromOffset(16, 16),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -8, 0.5, 0),
@@ -2750,7 +2752,7 @@ ElementsTable.Dropdown = (function()
 			},
 		}, {
 			New("UICorner", {
-				CornerRadius = UDim.new(0, 5),
+				CornerRadius = UDim2.new(0, 5),
 			}),
 			New("UIStroke", {
 				Transparency = 0.5,
@@ -2854,19 +2856,14 @@ ElementsTable.Dropdown = (function()
 		Creator.AddSignal(DropdownInner:GetPropertyChangedSignal("AbsolutePosition"), RecalculateListPosition)
 
 		Creator.AddSignal(DropdownInner.MouseButton1Click, function()
-			if Dropdown.Opened then
-				Dropdown:Close()
-			else
-				Dropdown:Open()
-			end
+			if Dropdown.Opened then Dropdown:Close() else Dropdown:Open() end
 		end)
 
 		Creator.AddSignal(DropdownDisplay:GetPropertyChangedSignal("Text"), function()
 			local Text = DropdownDisplay.Text:lower()
 			for _, Element in ipairs(DropdownScrollFrame:GetChildren()) do
 				if Element:IsA("TextButton") and Element.ButtonLabel then
-					local Value = Element.ButtonLabel.Text:lower()
-					Element.Visible = (Text == "" or Value:find(Text, 1, true))
+					Element.Visible = (Text == "" or Element.ButtonLabel.Text:lower():find(Text, 1, true))
 				end
 			end
 			RecalculateListPosition()
@@ -2882,8 +2879,21 @@ ElementsTable.Dropdown = (function()
 			end
 		end)
 
-		-- CORREÇÃO: Input handling melhorado
-		local closeConnection
+		Creator.AddSignal(UserInputService.InputBegan, function(Input)
+			if Dropdown.Opened and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
+				task.wait() -- Garante que o clique de abrir não feche no mesmo frame
+				local mousePos = UserInputService:GetMouseLocation()
+				local btnPos, btnSize = DropdownInner.AbsolutePosition, DropdownInner.AbsoluteSize
+				if not (mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y) then
+					local AbsPos, AbsSize = DropdownHolderFrame.AbsolutePosition, DropdownHolderFrame.AbsoluteSize
+					if not (mousePos.X >= AbsPos.X and mousePos.X <= AbsPos.X + AbsSize.X and mousePos.Y >= AbsPos.Y and mousePos.Y <= AbsPos.Y + AbsSize.Y) then
+						Dropdown:Close()
+					end
+				end
+			end
+		end)
+
+		local ScrollFrame = self.ScrollFrame
 		function Dropdown:Open()
 			if Dropdown.Opened then return end
 			Dropdown.Opened = true
@@ -2894,54 +2904,17 @@ ElementsTable.Dropdown = (function()
 			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Size = UDim2.fromScale(1, 1) }):Play()
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 0 }):Play()
 			if Dropdown.Searchable then DropdownDisplay:CaptureFocus() end
-			
-			-- CORREÇÃO: Conector para fechar quando clicar fora
-			if closeConnection then
-				closeConnection:Disconnect()
-			end
-			closeConnection = UserInputService.InputBegan:Connect(function(Input)
-				if Dropdown.Opened and Input.UserInputType == Enum.UserInputType.MouseButton1 then
-					local mousePos = UserInputService:GetMouseLocation()
-					
-					-- Verifica se clicou no botão do dropdown
-					local btnPos, btnSize = DropdownInner.AbsolutePosition, DropdownInner.AbsoluteSize
-					local isInsideButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and 
-										  mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
-
-					-- Verifica se clicou dentro do dropdown holder
-					local holderPos = DropdownHolderFrame.AbsolutePosition
-					local holderSize = DropdownHolderFrame.AbsoluteSize
-					local isInsideHolder = mousePos.X >= holderPos.X and mousePos.X <= holderPos.X + holderSize.X and
-										  mousePos.Y >= holderPos.Y and mousePos.Y <= holderPos.Y + holderSize.Y
-
-					-- Só fecha se clicar fora do dropdown E fora do botão
-					if not isInsideHolder and not isInsideButton then
-						Dropdown:Close()
-					end
-				end
-			end)
 		end
 
-		local ScrollFrame = self.ScrollFrame
 		function Dropdown:Close()
 			if not Dropdown.Opened then return end
 			Dropdown.Opened = false
 			if ScrollFrame then ScrollFrame.ScrollingEnabled = true end
 			DropdownDisplay.Interactable = false
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 180 }):Play()
-			
-			-- CORREÇÃO: Remove o conector de fechamento
-			if closeConnection then
-				closeConnection:Disconnect()
-				closeConnection = nil
-			end
-			
-			task.delay(0, function()
-				if not Dropdown.Opened then
-					DropdownHolderCanvas.Visible = false
-					DropdownHolderFrame.Size = UDim2.fromScale(1, 0.6)
-				end
-			end)
+			-- MUDANÇA: Removido o task.delay que causava o atraso
+			DropdownHolderCanvas.Visible = false
+			DropdownHolderFrame.Size = UDim2.fromScale(1, 0.6)
 			DropdownDisplay:ReleaseFocus(false)
 			Dropdown:Display()
 		end
@@ -2958,46 +2931,13 @@ ElementsTable.Dropdown = (function()
 		end
 		
 		function Dropdown:BuildDropdownList()
-			for _, Element in ipairs(DropdownScrollFrame:GetChildren()) do
-				if Element:IsA("TextButton") then Element:Destroy() end
-			end
+			for _, Element in ipairs(DropdownScrollFrame:GetChildren()) do if Element:IsA("TextButton") then Element:Destroy() end end
 			local Buttons = {}
 			
 			for _, Value in ipairs(Dropdown.Values) do
-				local ButtonSelector = New("Frame", { 
-					Size = UDim2.fromOffset(4, 14), 
-					Position = UDim2.fromOffset(-1, 16), 
-					AnchorPoint = Vector2.new(0, 0.5), 
-					ThemeTag = { BackgroundColor3 = "Accent" } 
-				}, { 
-					New("UICorner", { CornerRadius = UDim.new(0, 2) }) 
-				})
-				
-				local ButtonLabel = New("TextLabel", { 
-					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), 
-					Text = Value, 
-					TextSize = 13, 
-					TextXAlignment = Enum.TextXAlignment.Left, 
-					BackgroundTransparency = 1, 
-					Size = UDim2.fromScale(1, 1), 
-					Position = UDim2.fromOffset(10, 0), 
-					Name = "ButtonLabel", 
-					ThemeTag = { TextColor3 = "Text" } 
-				})
-				
-				local Button = New("TextButton", { 
-					Size = UDim2.new(1, -5, 0, 32), 
-					BackgroundTransparency = 1, 
-					ZIndex = 51, -- ZIndex maior
-					Text = "", 
-					Parent = DropdownScrollFrame, 
-					AutoButtonColor = false,
-					ThemeTag = { BackgroundColor3 = "DropdownOption" } 
-				}, { 
-					ButtonSelector, 
-					ButtonLabel, 
-					New("UICorner", { CornerRadius = UDim.new(0, 6) }) 
-				})
+				local ButtonSelector = New("Frame", { Size = UDim2.fromOffset(4, 14), Position = UDim2.fromOffset(-1, 16), AnchorPoint = Vector2.new(0, 0.5), ThemeTag = { BackgroundColor3 = "Accent" } }, { New("UICorner", { CornerRadius = UDim2.new(0, 2) }) })
+				local ButtonLabel = New("TextLabel", { FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), Text = Value, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Position = UDim2.fromOffset(10, 0), Name = "ButtonLabel", ThemeTag = { TextColor3 = "Text" } })
+				local Button = New("TextButton", { Size = UDim2.new(1, -5, 0, 32), BackgroundTransparency = 1, ZIndex = 23, Text = "", Parent = DropdownScrollFrame, ThemeTag = { BackgroundColor3 = "DropdownOption" } }, { ButtonSelector, ButtonLabel, New("UICorner", { CornerRadius = UDim2.new(0, 6) }) })
 
 				local function UpdateButton()
 					local Selected = (Config.Multi and Dropdown.Value[Value]) or (Dropdown.Value == Value)
@@ -3006,35 +2946,26 @@ ElementsTable.Dropdown = (function()
 					ButtonSelector.BackgroundTransparency = Selected and 0 or 1
 				end
 				
-				Creator.AddSignal(Button.MouseEnter, function() 
-					if not Button:GetAttribute("Selected") then 
-						Button.BackgroundTransparency = 0.89 
-					end 
-				end)
+				AddSignal(Button.MouseEnter, function() if not Button:GetAttribute("Selected") then Button.BackgroundTransparency = 0.89 end end)
+				AddSignal(Button.MouseLeave, function() if not Button:GetAttribute("Selected") then Button.BackgroundTransparency = 1 end end)
 				
-				Creator.AddSignal(Button.MouseLeave, function() 
-					if not Button:GetAttribute("Selected") then 
-						Button.BackgroundTransparency = 1 
-					end 
-				end)
-				
-				-- CORREÇÃO: Usar MouseButton1Click e NÃO fechar automaticamente
-				Creator.AddSignal(Button.MouseButton1Click, function()
+				-- MUDANÇA: Usando MouseButton1Click e garantindo a ordem das operações
+				AddSignal(Button.MouseButton1Click, function()
 					if Config.Multi then
 						Dropdown.Value[Value] = not Dropdown.Value[Value]
 					else
 						if Dropdown.Value == Value and not Config.AllowNull then return end
 						Dropdown.Value = (Dropdown.Value == Value and nil or Value)
-						for _, otherButton in pairs(Buttons) do 
-							otherButton.UpdateButton() 
-						end
-						-- REMOVIDO: Não fecha automaticamente para single-select
+						for _, otherButton in pairs(Buttons) do otherButton.UpdateButton() end
 					end
 					UpdateButton()
 					Dropdown:Display()
 					Library:SafeCallback(Dropdown.Callback, Dropdown.Value)
-					if Dropdown.Changed then 
-						Library:SafeCallback(Dropdown.Changed, Dropdown.Value) 
+					if Dropdown.Changed then Library:SafeCallback(Dropdown.Changed, Dropdown.Value) end
+
+					-- Fecha o dropdown DEPOIS de tudo
+					if not Config.Multi then
+						Dropdown:Close()
 					end
 				end)
 				
@@ -3042,16 +2973,10 @@ ElementsTable.Dropdown = (function()
 				UpdateButton()
 			end
 			
-			ListSizeX = 0; 
-			for Button, _ in pairs(Buttons) do 
-				if Button.ButtonLabel and Button.ButtonLabel.TextBounds.X > ListSizeX then 
-					ListSizeX = Button.ButtonLabel.TextBounds.X 
-				end 
-			end
+			ListSizeX = 0; for Button, _ in pairs(Buttons) do if Button.ButtonLabel and Button.ButtonLabel.TextBounds.X > ListSizeX then ListSizeX = Button.ButtonLabel.TextBounds.X end end
 			ListSizeX = ListSizeX + 30
 			
-			RecalculateCanvasSize(); 
-			RecalculateListSize()
+			RecalculateCanvasSize(); RecalculateListSize()
 		end
 
 		function Dropdown:SetValues(NewValues) Dropdown.Values = NewValues; Dropdown:BuildDropdownList() end
@@ -3069,13 +2994,7 @@ ElementsTable.Dropdown = (function()
 			if Dropdown.Changed then Library:SafeCallback(Dropdown.Changed, Dropdown.Value) end
 		end
 
-		function Dropdown:Destroy() 
-			if closeConnection then
-				closeConnection:Disconnect()
-			end
-			DropdownFrame:Destroy(); 
-			if Library.Options[Idx] then Library.Options[Idx] = nil end 
-		end
+		function Dropdown:Destroy() DropdownFrame:Destroy(); if Library.Options[Idx] then Library.Options[Idx] = nil end end
 		
 		Dropdown:SetValue(Config.Default)
 		
