@@ -1722,21 +1722,23 @@ Components.Notification = (function()
 
 	local Notification = {}
 
-	function Notification:Init()
+	function Notification:Init(Parent)
 		Library.ActiveNotifications = Library.ActiveNotifications or {}
 
 		Notification.Holder = New("Frame", {
-			Position = UDim2.new(1, -10, 1, -10), 
-			Size = UDim2.new(0, 270, 1, 0),
+			-- MUDANÇA: Voltar para a posição original
+			Position = UDim2.new(1, -30, 1, -30), -- Original: canto inferior direito
+			Size = UDim2.new(0, 310, 1, -30), -- Original: largura 310
 			AnchorPoint = Vector2.new(1, 1),
 			BackgroundTransparency = 1,
-			Parent = game:GetService("CoreGui"),
+			Parent = Parent,
 		}, {
 			New("UIListLayout", {
-				HorizontalAlignment = Enum.HorizontalAlignment.Right,
+				-- MUDANÇA: Voltar para centralizado
+				HorizontalAlignment = Enum.HorizontalAlignment.Center, -- Original: Center
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				VerticalAlignment = Enum.VerticalAlignment.Bottom,
-				Padding = UDim.new(0, 10),
+				Padding = UDim.new(0, 20), -- Original: 20
 			}),
 		})
 	end
