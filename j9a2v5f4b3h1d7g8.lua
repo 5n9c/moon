@@ -1722,7 +1722,7 @@ Components.Notification = (function()
 
 	local Notification = {}
 
-	function Notification:Init(GUI)
+	function Notification:Init(Parent)
 		Library.ActiveNotifications = Library.ActiveNotifications or {}
 
 		Notification.Holder = New("Frame", {
@@ -1730,7 +1730,7 @@ Components.Notification = (function()
 			Size = UDim2.new(0, 270, 1, 0),
 			AnchorPoint = Vector2.new(1, 1),
 			BackgroundTransparency = 1,
-			Parent = GUI,
+			Parent = Parent,
 		}, {
 			New("UIListLayout", {
 				HorizontalAlignment = Enum.HorizontalAlignment.Right,
@@ -2726,7 +2726,7 @@ ElementsTable.Dropdown = (function()
 		})
 
 		local DropdownIco = New("ImageLabel", {
-			Image = "rbxassetid://10709790948",
+			Image = "rbxassetid://89769124034919",
 			Size = UDim2.fromOffset(16, 16),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -8, 0.5, 0),
@@ -2882,17 +2882,25 @@ ElementsTable.Dropdown = (function()
 			end
 		end)
 
+		-- CORREÇÃO: Input handling melhorado
+		local InputConnection
 		Creator.AddSignal(UserInputService.InputBegan, function(Input)
 			if Dropdown.Opened and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
 				local mousePos = UserInputService:GetMouseLocation()
 				
+				-- Verifica se o clique foi dentro do dropdown
+				local dropdownPos = DropdownHolderFrame.AbsolutePosition
+				local dropdownSize = DropdownHolderFrame.AbsoluteSize
+				local isInsideDropdown = mousePos.X >= dropdownPos.X and mousePos.X <= dropdownPos.X + dropdownSize.X and
+										mousePos.Y >= dropdownPos.Y and mousePos.Y <= dropdownPos.Y + dropdownSize.Y
+				
+				-- Verifica se o clique foi no botão do dropdown
 				local btnPos, btnSize = DropdownInner.AbsolutePosition, DropdownInner.AbsoluteSize
-				if mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y then
-					return
-				end
+				local isInsideButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and 
+									  mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
 
-				local AbsPos, AbsSize = DropdownHolderFrame.AbsolutePosition, DropdownHolderFrame.AbsoluteSize
-				if mousePos.X < AbsPos.X or mousePos.X > AbsPos.X + AbsSize.X or mousePos.Y < AbsPos.Y or mousePos.Y > AbsPos.Y + AbsSize.Y then
+				-- Só fecha se clicar fora do dropdown E fora do botão
+				if not isInsideDropdown and not isInsideButton then
 					Dropdown:Close()
 				end
 			end
@@ -2945,9 +2953,40 @@ ElementsTable.Dropdown = (function()
 			local Buttons = {}
 			
 			for _, Value in ipairs(Dropdown.Values) do
-				local ButtonSelector = New("Frame", { Size = UDim2.fromOffset(4, 14), Position = UDim2.fromOffset(-1, 16), AnchorPoint = Vector2.new(0, 0.5), ThemeTag = { BackgroundColor3 = "Accent" } }, { New("UICorner", { CornerRadius = UDim.new(0, 2) }) })
-				local ButtonLabel = New("TextLabel", { FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), Text = Value, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Position = UDim2.fromOffset(10, 0), Name = "ButtonLabel", ThemeTag = { TextColor3 = "Text" } })
-				local Button = New("TextButton", { Size = UDim2.new(1, -5, 0, 32), BackgroundTransparency = 1, ZIndex = 23, Text = "", Parent = DropdownScrollFrame, ThemeTag = { BackgroundColor3 = "DropdownOption" } }, { ButtonSelector, ButtonLabel, New("UICorner", { CornerRadius = UDim.new(0, 6) }) })
+				local ButtonSelector = New("Frame", { 
+					Size = UDim2.fromOffset(4, 14), 
+					Position = UDim2.fromOffset(-1, 16), 
+					AnchorPoint = Vector2.new(0, 0.5), 
+					ThemeTag = { BackgroundColor3 = "Accent" } 
+				}, { 
+					New("UICorner", { CornerRadius = UDim.new(0, 2) }) 
+				})
+				
+				local ButtonLabel = New("TextLabel", { 
+					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), 
+					Text = Value, 
+					TextSize = 13, 
+					TextXAlignment = Enum.TextXAlignment.Left, 
+					BackgroundTransparency = 1, 
+					Size = UDim2.fromScale(1, 1), 
+					Position = UDim2.fromOffset(10, 0), 
+					Name = "ButtonLabel", 
+					ThemeTag = { TextColor3 = "Text" } 
+				})
+				
+				local Button = New("TextButton", { 
+					Size = UDim2.new(1, -5, 0, 32), 
+					BackgroundTransparency = 1, 
+					ZIndex = 51, -- CORREÇÃO: ZIndex maior para garantir que receba cliques
+					Text = "", 
+					Parent = DropdownScrollFrame, 
+					AutoButtonColor = false, -- CORREÇÃO: Desativa AutoButtonColor para melhor controle
+					ThemeTag = { BackgroundColor3 = "DropdownOption" } 
+				}, { 
+					ButtonSelector, 
+					ButtonLabel, 
+					New("UICorner", { CornerRadius = UDim.new(0, 6) }) 
+				})
 
 				local function UpdateButton()
 					local Selected = (Config.Multi and Dropdown.Value[Value]) or (Dropdown.Value == Value)
@@ -2956,16 +2995,31 @@ ElementsTable.Dropdown = (function()
 					ButtonSelector.BackgroundTransparency = Selected and 0 or 1
 				end
 				
-				AddSignal(Button.MouseEnter, function() if not Button:GetAttribute("Selected") then Button.BackgroundTransparency = 0.89 end end)
-				AddSignal(Button.MouseLeave, function() if not Button:GetAttribute("Selected") then Button.BackgroundTransparency = 1 end end)
+				Creator.AddSignal(Button.MouseEnter, function() 
+					if not Button:GetAttribute("Selected") then 
+						Button.BackgroundTransparency = 0.89 
+					end 
+				end)
 				
-				AddSignal(Button.Activated, function()
+				Creator.AddSignal(Button.MouseLeave, function() 
+					if not Button:GetAttribute("Selected") then 
+						Button.BackgroundTransparency = 1 
+					end 
+				end)
+				
+				Creator.AddSignal(Button.MouseButton1Click, function()
+					-- CORREÇÃO: Usar MouseButton1Click em vez de Activated para melhor resposta
 					if Config.Multi then
 						Dropdown.Value[Value] = not Dropdown.Value[Value]
 					else
 						if Dropdown.Value == Value and not Config.AllowNull then return end
 						Dropdown.Value = (Dropdown.Value == Value and nil or Value)
 						for _, otherButton in pairs(Buttons) do otherButton.UpdateButton() end
+						-- Fecha automaticamente se não for multi
+						if not Config.Multi then
+							task.wait(0.1) -- Pequeno delay para animação
+							Dropdown:Close()
+						end
 					end
 					UpdateButton()
 					Dropdown:Display()
