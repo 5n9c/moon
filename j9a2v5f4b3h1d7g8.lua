@@ -2767,28 +2767,29 @@ ElementsTable.Dropdown = (function()
 			Padding = UDim.new(0, 3),
 		})
 
+		-- CORREÇÃO: ScrollingFrame com tamanho adequado
 		local DropdownScrollFrame = New("ScrollingFrame", {
-			Size = UDim2.new(1, -5, 1, -10),
+			Size = UDim2.new(1, -10, 1, -10), -- Mais espaço interno
 			Position = UDim2.fromOffset(5, 5),
 			BackgroundTransparency = 1,
-			BottomImage = "rbxassetid://6889812791",
-			MidImage = "rbxassetid://6889812721",
-			TopImage = "rbxassetid://6276641225",
 			ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255),
 			ScrollBarImageTransparency = 0.75,
 			ScrollBarThickness = 5,
 			BorderSizePixel = 0,
 			CanvasSize = UDim2.fromScale(0, 0),
 			ScrollingDirection = Enum.ScrollingDirection.Y,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y, -- CORREÇÃO: Tamanho automático
+			ScrollBarImageTransparency = 0.8,
 		}, {
 			DropdownListLayout,
 		})
 
+		-- CORREÇÃO: DropdownHolderFrame com tamanho adequado
 		local DropdownHolderFrame = New("Frame", {
 			Size = UDim2.fromScale(1, 0.6),
-			ThemeTag = {
-				BackgroundColor3 = "DropdownHolder",
-			},
+			BackgroundTransparency = 0.95,
+			BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+			ClipsDescendants = false, -- CORREÇÃO IMPORTANTE: Não cortar elementos
 		}, {
 			DropdownScrollFrame,
 			New("UICorner", {
@@ -2800,16 +2801,6 @@ ElementsTable.Dropdown = (function()
 					Color = "DropdownBorder",
 				},
 			}),
-			New("ImageLabel", {
-				BackgroundTransparency = 1,
-				Image = "http://www.roblox.com/asset/?id=5554236805",
-				ScaleType = Enum.ScaleType.Slice,
-				SliceCenter = Rect.new(23, 23, 277, 277),
-				Size = UDim2.fromScale(1, 1) + UDim2.fromOffset(30, 30),
-				Position = UDim2.fromOffset(-15, -15),
-				ImageColor3 = Color3.fromRGB(0, 0, 0),
-				ImageTransparency = 0.1,
-			}),
 		})
 
 		local DropdownHolderCanvas = New("Frame", {
@@ -2818,6 +2809,7 @@ ElementsTable.Dropdown = (function()
 			Parent = Library.GUI,
 			Visible = false,
 			ZIndex = 50,
+			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
 		}, {
 			DropdownHolderFrame,
 			New("UISizeConstraint", {
@@ -2837,11 +2829,13 @@ ElementsTable.Dropdown = (function()
 
 		local ListSizeX = 0
 		local function RecalculateListSize()
-			if #Dropdown.Values > 10 then
-				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, 392)
-			else
-				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, DropdownListLayout.AbsoluteContentSize.Y + 10)
-			end
+			-- CORREÇÃO: Tamanho baseado no conteúdo real
+			local contentHeight = DropdownListLayout.AbsoluteContentSize.Y + 20
+			local maxHeight = 400
+			local targetHeight = math.min(contentHeight, maxHeight)
+			
+			DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, targetHeight)
+			DropdownHolderFrame.Size = UDim2.fromScale(1, 1) -- Sempre ocupa 100%
 		end
 
 		local function RecalculateCanvasSize()
@@ -2853,21 +2847,12 @@ ElementsTable.Dropdown = (function()
 
 		Creator.AddSignal(DropdownInner:GetPropertyChangedSignal("AbsolutePosition"), RecalculateListPosition)
 
-		-- CORREÇÃO RADICAL: Input handling completamente simplificado
-		local isProcessingClick = false
-		
 		Creator.AddSignal(DropdownInner.MouseButton1Click, function()
-			if isProcessingClick then return end
-			isProcessingClick = true
-			
 			if Dropdown.Opened then
 				Dropdown:Close()
 			else
 				Dropdown:Open()
 			end
-			
-			task.wait(0.1)
-			isProcessingClick = false
 		end)
 
 		Creator.AddSignal(DropdownDisplay:GetPropertyChangedSignal("Text"), function()
@@ -2891,21 +2876,20 @@ ElementsTable.Dropdown = (function()
 			end
 		end)
 
-		-- CORREÇÃO RADICAL: Input handling super simples
 		local closeConnection
+		local ScrollFrame = self.ScrollFrame
 		
 		function Dropdown:Open()
 			if Dropdown.Opened then return end
 			Dropdown.Opened = true
 			DropdownDisplay.Interactable = Dropdown.Searchable
-			if self.ScrollFrame then self.ScrollFrame.ScrollingEnabled = false end
+			if ScrollFrame then ScrollFrame.ScrollingEnabled = false end
 			DropdownHolderCanvas.Visible = true
 			RecalculateListPosition()
 			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Size = UDim2.fromScale(1, 1) }):Play()
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 0 }):Play()
 			if Dropdown.Searchable then DropdownDisplay:CaptureFocus() end
 			
-			-- Input handling MUITO simples
 			if closeConnection then
 				closeConnection:Disconnect()
 			end
@@ -2914,7 +2898,6 @@ ElementsTable.Dropdown = (function()
 				if Input.UserInputType == Enum.UserInputType.MouseButton1 then
 					local mousePos = UserInputService:GetMouseLocation()
 					
-					-- Verifica MUITO simplesmente se clicou fora
 					local holderPos = DropdownHolderFrame.AbsolutePosition
 					local holderSize = DropdownHolderFrame.AbsoluteSize
 					local isInsideHolder = mousePos.X >= holderPos.X and mousePos.X <= holderPos.X + holderSize.X and
@@ -2930,7 +2913,7 @@ ElementsTable.Dropdown = (function()
 		function Dropdown:Close()
 			if not Dropdown.Opened then return end
 			Dropdown.Opened = false
-			if self.ScrollFrame then self.ScrollFrame.ScrollingEnabled = true end
+			if ScrollFrame then ScrollFrame.ScrollingEnabled = true end
 			DropdownDisplay.Interactable = false
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 180 }):Play()
 			
@@ -2988,16 +2971,14 @@ ElementsTable.Dropdown = (function()
 					ThemeTag = { TextColor3 = "Text" } 
 				})
 				
-				-- CORREÇÃO RADICAL: Botão MUITO simples
+				-- CORREÇÃO: Botão com tamanho adequado
 				local Button = New("TextButton", { 
-					Size = UDim2.new(1, -5, 0, 32), 
+					Size = UDim2.new(1, 0, 0, 32), -- Largura total
 					BackgroundTransparency = 1, 
-					ZIndex = 100, -- ZIndex ALTÍSSIMO
+					ZIndex = 100,
 					Text = "", 
 					Parent = DropdownScrollFrame,
 					AutoButtonColor = false,
-					Active = true,
-					Selectable = true,
 					ThemeTag = { BackgroundColor3 = "DropdownOption" } 
 				}, { 
 					ButtonSelector, 
@@ -3012,7 +2993,6 @@ ElementsTable.Dropdown = (function()
 					ButtonSelector.BackgroundTransparency = Selected and 0 or 1
 				end
 				
-				-- CORREÇÃO RADICAL: Eventos MUITO simples
 				Button.MouseEnter:Connect(function() 
 					if not Button:GetAttribute("Selected") then 
 						Button.BackgroundTransparency = 0.89 
@@ -3025,7 +3005,6 @@ ElementsTable.Dropdown = (function()
 					end 
 				end)
 				
-				-- CORREÇÃO RADICAL: Click MUITO direto
 				Button.MouseButton1Click:Connect(function()
 					if Config.Multi then
 						Dropdown.Value[Value] = not Dropdown.Value[Value]
@@ -3044,10 +3023,16 @@ ElementsTable.Dropdown = (function()
 				UpdateButton()
 			end
 			
-			ListSizeX = 0; for Button, _ in pairs(Buttons) do if Button.ButtonLabel and Button.ButtonLabel.TextBounds.X > ListSizeX then ListSizeX = Button.ButtonLabel.TextBounds.X end end
-			ListSizeX = ListSizeX + 30
+			ListSizeX = 0
+			for Button, _ in pairs(Buttons) do 
+				if Button.ButtonLabel and Button.ButtonLabel.TextBounds.X > ListSizeX then 
+					ListSizeX = Button.ButtonLabel.TextBounds.X 
+				end 
+			end
+			ListSizeX = math.max(150, ListSizeX + 40) -- Largura mínima
 			
-			RecalculateCanvasSize(); RecalculateListSize()
+			RecalculateCanvasSize() 
+			RecalculateListSize()
 		end
 
 		function Dropdown:SetValues(NewValues) Dropdown.Values = NewValues; Dropdown:BuildDropdownList() end
