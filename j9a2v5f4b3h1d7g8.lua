@@ -1722,23 +1722,21 @@ Components.Notification = (function()
 
 	local Notification = {}
 
-	function Notification:Init(Parent)
+	function Notification:Init(GUI)
 		Library.ActiveNotifications = Library.ActiveNotifications or {}
 
 		Notification.Holder = New("Frame", {
-			-- MUDANÇA: Voltar para a posição original
-			Position = UDim2.new(1, -30, 1, -30), -- Original: canto inferior direito
-			Size = UDim2.new(0, 310, 1, -30), -- Original: largura 310
+			Position = UDim2.new(1, -10, 1, -10), 
+			Size = UDim2.new(0, 270, 1, 0),
 			AnchorPoint = Vector2.new(1, 1),
 			BackgroundTransparency = 1,
-			Parent = Parent,
+			Parent = GUI,
 		}, {
 			New("UIListLayout", {
-				-- MUDANÇA: Voltar para centralizado
-				HorizontalAlignment = Enum.HorizontalAlignment.Center, -- Original: Center
+				HorizontalAlignment = Enum.HorizontalAlignment.Right,
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				VerticalAlignment = Enum.VerticalAlignment.Bottom,
-				Padding = UDim.new(0, 20), -- Original: 20
+				Padding = UDim.new(0, 10),
 			}),
 		})
 	end
