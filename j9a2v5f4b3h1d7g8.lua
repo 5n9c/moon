@@ -1725,18 +1725,20 @@ Components.Notification = (function()
 	function Notification:Init(Parent)
 		Library.ActiveNotifications = Library.ActiveNotifications or {}
 
+		-- CORREÇÃO: Notificações fora da UI, na parte de baixo da tela
 		Notification.Holder = New("Frame", {
-			Position = UDim2.new(1, -10, 1, -10), 
-			Size = UDim2.new(0, 270, 1, 0),
-			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(0.5, 0, 1, -20), -- Centro na parte de baixo
+			Size = UDim2.new(0, 300, 0, 0), -- Altura automática
+			AnchorPoint = Vector2.new(0.5, 1),
 			BackgroundTransparency = 1,
 			Parent = Parent,
+			ZIndex = 1000, -- Alta prioridade para ficar acima de tudo
 		}, {
 			New("UIListLayout", {
-				HorizontalAlignment = Enum.HorizontalAlignment.Right,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				VerticalAlignment = Enum.VerticalAlignment.Bottom,
-				Padding = UDim.new(0, 10),
+				Padding = UDim.new(0, 8), -- Espaçamento entre notificações
 			}),
 		})
 	end
@@ -1754,91 +1756,149 @@ Components.Notification = (function()
 		NewNotification.AcrylicPaint = Acrylic.AcrylicPaint()
 
 		local TopBar = New("Frame", {
-			Size = UDim2.new(1, 0, 0, 4),
-			Position = UDim2.new(1, 0, 0, 0),
-			AnchorPoint = Vector2.new(1, 0),
-			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			Size = UDim2.new(1, 0, 0, 3), -- Barra mais fina
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundColor3 = Color3.fromRGB(76, 194, 255), -- Azul accent
 			BorderSizePixel = 0,
 			ZIndex = 3,
+		}, {
+			New("UICorner", {
+				CornerRadius = UDim.new(0, 2),
+			}),
 		})
 
+		-- Animação da barra de progresso (se tiver duration)
 		if Config.Duration and Config.Duration > 0 then
 			local tweenInfo = TweenInfo.new(
 				Config.Duration,
 				Enum.EasingStyle.Linear
 			)
 			local goal = {
-				Size = UDim2.new(0, 0, 0, 4)
+				Size = UDim2.new(0, 0, 0, 3)
 			}
 			local barTween = TweenService:Create(TopBar, tweenInfo, goal)
 			barTween:Play()
 		end
 
 		NewNotification.Title = New("TextLabel", {
-			Position = UDim2.new(0, 10, 0, 12), Text = Config.Title, RichText = true,
-			TextColor3 = Color3.fromRGB(255, 255, 255), TextTransparency = 0,
-			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), TextSize = 12,
-			TextXAlignment = "Left", TextYAlignment = "Center", Size = UDim2.new(1, -25, 0, 12),
-			TextWrapped = true, BackgroundTransparency = 1, ThemeTag = { TextColor3 = "Text" },
+			Position = UDim2.new(0, 12, 0, 10),
+			Text = Config.Title, 
+			RichText = true,
+			TextColor3 = Color3.fromRGB(255, 255, 255), 
+			TextTransparency = 0,
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold),
+			TextSize = 13,
+			TextXAlignment = "Left", 
+			TextYAlignment = "Center", 
+			Size = UDim2.new(1, -30, 0, 14), -- Mais espaço para o botão fechar
+			TextWrapped = true, 
+			BackgroundTransparency = 1, 
+			ThemeTag = { 
+				TextColor3 = "Text" 
+			},
 		})
 
 		NewNotification.ContentLabel = New("TextLabel", {
-			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), Text = Config.Content,
-			TextColor3 = Color3.fromRGB(240, 240, 240), TextSize = 12, TextXAlignment = "Left",
-			AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2.new(1, 0, 0, 12),
-			BackgroundTransparency = 1, TextWrapped = true, ThemeTag = { TextColor3 = "Text" },
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), 
+			Text = Config.Content,
+			TextColor3 = Color3.fromRGB(240, 240, 240), 
+			TextSize = 12, 
+			TextXAlignment = "Left",
+			AutomaticSize = Enum.AutomaticSize.Y, 
+			Size = UDim2.new(1, -24, 0, 0), -- Margem para não colar nas bordas
+			BackgroundTransparency = 1, 
+			TextWrapped = true, 
+			ThemeTag = { 
+				TextColor3 = "Text" 
+			},
 		})
 
 		NewNotification.SubContentLabel = New("TextLabel", {
-			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), Text = Config.SubContent,
-			TextColor3 = Color3.fromRGB(240, 240, 240), TextSize = 12, TextXAlignment = "Left",
-			AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2.new(1, 0, 0, 12),
-			BackgroundTransparency = 1, TextWrapped = true, ThemeTag = { TextColor3 = "SubText" },
+			FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"), 
+			Text = Config.SubContent,
+			TextColor3 = Color3.fromRGB(200, 200, 200), 
+			TextSize = 11, 
+			TextXAlignment = "Left",
+			AutomaticSize = Enum.AutomaticSize.Y, 
+			Size = UDim2.new(1, -24, 0, 0),
+			BackgroundTransparency = 1, 
+			TextWrapped = true, 
+			ThemeTag = { 
+				TextColor3 = "SubText" 
+			},
 		})
 
 		NewNotification.LabelHolder = New("Frame", {
-			AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(10, 30), Size = UDim2.new(1, -20, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y, 
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(12, 28), -- Abaixo do título
+			Size = UDim2.new(1, -24, 0, 0),
 		}, {
 			New("UIListLayout", {
-				SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center,
-				Padding = UDim.new(0, 3),
+				SortOrder = Enum.SortOrder.LayoutOrder, 
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = UDim.new(0, 4), -- Mais espaçamento entre conteúdo e subconteúdo
 			}),
-			NewNotification.ContentLabel, NewNotification.SubContentLabel,
+			NewNotification.ContentLabel, 
+			NewNotification.SubContentLabel,
 		})
 
 		NewNotification.CloseButton = New("TextButton", {
-			Text = "", Position = UDim2.new(1, -8, 0, 8), Size = UDim2.fromOffset(16, 16),
-			AnchorPoint = Vector2.new(1, 0), BackgroundTransparency = 1, ZIndex = 3,
+			Text = "", 
+			Position = UDim2.new(1, -8, 0, 8), 
+			Size = UDim2.fromOffset(20, 20),
+			AnchorPoint = Vector2.new(1, 0), 
+			BackgroundTransparency = 1, 
+			ZIndex = 3,
 		}, {
 			New("ImageLabel", {
-				Image = Components.Close, Size = UDim2.fromOffset(12, 12), Position = UDim2.fromScale(0.5, 0.5),
-				AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1,
-				ThemeTag = { ImageColor3 = "Text" },
+				Image = Components.Close, 
+				Size = UDim2.fromOffset(14, 14), 
+				Position = UDim2.fromScale(0.5, 0.5),
+				AnchorPoint = Vector2.new(0.5, 0.5), 
+				BackgroundTransparency = 1,
+				ThemeTag = { 
+					ImageColor3 = "Text" 
+				},
 			}),
 		})
 
 		NewNotification.Root = New("Frame", {
-			BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
-			Position = UDim2.fromScale(1, 0),
+			BackgroundTransparency = 1, 
+			Size = UDim2.new(0, 280, 0, 0), -- Largura fixa, altura automática
+			Position = UDim2.new(0.5, 0, 1, 0), -- Começa abaixo da tela
+			AnchorPoint = Vector2.new(0.5, 1),
+			ClipsDescendants = true,
 		}, {
-			NewNotification.AcrylicPaint.Frame, TopBar, NewNotification.Title,
-			NewNotification.CloseButton, NewNotification.LabelHolder,
+			NewNotification.AcrylicPaint.Frame, 
+			TopBar, 
+			NewNotification.Title,
+			NewNotification.CloseButton, 
+			NewNotification.LabelHolder,
 		})
 
-		if Config.Content == "" then NewNotification.ContentLabel.Visible = false end
-		if Config.SubContent == "" then NewNotification.SubContentLabel.Visible = false end
+		if Config.Content == "" then 
+			NewNotification.ContentLabel.Visible = false 
+		end
+		
+		if Config.SubContent == "" then 
+			NewNotification.SubContentLabel.Visible = false 
+		end
 
 		NewNotification.Holder = New("Frame", {
-			BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 200),
+			BackgroundTransparency = 1, 
+			Size = UDim2.new(0, 280, 0, 0), -- Mesma largura do Root
+			LayoutOrder = 999, -- Sempre no final
 			Parent = Notification.Holder,
 		}, {
 			NewNotification.Root,
 		})
 
-		local RootMotor = Flipper.GroupMotor.new({ Scale = 1, Offset = 60 })
-		RootMotor:onStep(function(Values)
-			NewNotification.Root.Position = UDim2.new(Values.Scale, Values.Offset, 0, 0)
+		-- CORREÇÃO: Motor de animação para subir da parte de baixo
+		local PositionMotor = Flipper.SingleMotor.new(50) -- Começa 50px abaixo
+
+		PositionMotor:onStep(function(Value)
+			NewNotification.Root.Position = UDim2.new(0.5, 0, 1, -Value)
 		end)
 
 		Creator.AddSignal(NewNotification.CloseButton.MouseButton1Click, function()
@@ -1846,44 +1906,68 @@ Components.Notification = (function()
 		end)
 
 		function NewNotification:ApplyTransparency()
+			if Library.UseAcrylic and NewNotification.AcrylicPaint then
+				NewNotification.AcrylicPaint.AddParent(NewNotification.Root)
+			end
 		end
 
 		function NewNotification:Open()
-			local ContentSize = NewNotification.LabelHolder.AbsoluteSize.Y
-			NewNotification.Holder.Size = UDim2.new(1, 0, 0, 40 + ContentSize)
-			RootMotor:setGoal({
-				Scale = Spring(0, { frequency = 5 }),
-				Offset = Spring(0, { frequency = 5 }),
-			})
-			task.defer(function() task.wait(0.1); NewNotification:ApplyTransparency() end)
+			-- Calcula altura baseada no conteúdo
+			local titleHeight = 24
+			local contentHeight = math.max(NewNotification.LabelHolder.AbsoluteSize.Y, 20)
+			local padding = 12
+			local totalHeight = titleHeight + contentHeight + padding
+			
+			-- Ajusta os tamanhos
+			NewNotification.Holder.Size = UDim2.new(0, 280, 0, totalHeight)
+			NewNotification.Root.Size = UDim2.new(0, 280, 0, totalHeight)
+
+			-- CORREÇÃO: Animação subindo da parte de baixo
+			PositionMotor:setGoal(Spring(20, { frequency = 6, damping = 0.8 })) -- Sobe até 20px da base
+
+			task.defer(function() 
+				task.wait(0.1) 
+				NewNotification:ApplyTransparency() 
+			end)
 		end
 
 		function NewNotification:Close()
 			if not NewNotification.Closed then
 				NewNotification.Closed = true
+
+				-- Remove da lista de notificações ativas
 				for i, notif in pairs(Library.ActiveNotifications or {}) do
 					if notif == NewNotification then
 						table.remove(Library.ActiveNotifications, i)
 						break
 					end
 				end
+
+				-- CORREÇÃO: Animação descendo para fora da tela
+				PositionMotor:setGoal(Spring(-50, { frequency = 6, damping = 0.8 }))
+				
 				task.spawn(function()
-					RootMotor:setGoal({
-						Scale = Spring(1, { frequency = 6, dampingRatio = 1 }),
-						Offset = Spring(60, { frequency = 6, dampingRatio = 1 }),
-					})
-					task.wait(0.4)
+					task.wait(0.4) -- Espera a animação terminar
+					if Library.UseAcrylic and NewNotification.AcrylicPaint and NewNotification.AcrylicPaint.Model then
+						NewNotification.AcrylicPaint.Model:Destroy()
+					end
+					NewNotification.Holder:Destroy()
 				end)
 			end
 		end
 
 		table.insert(Library.ActiveNotifications, NewNotification)
 		NewNotification:Open()
+		
+		-- Fechamento automático se tiver duration
 		if Config.Duration then
 			task.delay(Config.Duration, function()
-				NewNotification:Close()
+				if not NewNotification.Closed then
+					NewNotification:Close()
+				end
 			end)
 		end
+		
 		return NewNotification
 	end
 
