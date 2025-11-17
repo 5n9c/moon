@@ -2767,7 +2767,7 @@ ElementsTable.Dropdown = (function()
 			Padding = UDim.new(0, 3),
 		})
 
-		-- CORREÇÃO: ScrollingFrame com tamanho adequado
+		-- CORREÇÃO: ScrollingFrame com ZIndex alto e sem cortar
 		local DropdownScrollFrame = New("ScrollingFrame", {
 			Size = UDim2.new(1, -10, 1, -10),
 			Position = UDim2.fromOffset(5, 5),
@@ -2778,43 +2778,48 @@ ElementsTable.Dropdown = (function()
 			BorderSizePixel = 0,
 			CanvasSize = UDim2.fromScale(0, 0),
 			ScrollingDirection = Enum.ScrollingDirection.Y,
-			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ScrollBarImageTransparency = 0.8,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y, -- CORREÇÃO: Tamanho automático
+			ZIndex = 60, -- CORREÇÃO: ZIndex alto
+			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
 		}, {
 			DropdownListLayout,
 		})
 
-		-- CORREÇÃO: DropdownHolderFrame com tamanho adequado
+		-- CORREÇÃO: DropdownHolderFrame com ZIndex alto
 		local DropdownHolderFrame = New("Frame", {
-			Size = UDim2.fromScale(1, 0), -- Começa com altura 0
+			Size = UDim2.fromScale(1, 0.6),
 			BackgroundTransparency = 0.05, -- CORREÇÃO: Visível
 			BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-			ClipsDescendants = false,
-			Visible = true, -- CORREÇÃO: Sempre visível
+			ZIndex = 55, -- CORREÇÃO: ZIndex alto
+			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
 		}, {
 			DropdownScrollFrame,
 			New("UICorner", {
 				CornerRadius = UDim.new(0, 7),
+				ZIndex = 55,
 			}),
 			New("UIStroke", {
 				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 				ThemeTag = {
 					Color = "DropdownBorder",
 				},
+				ZIndex = 55,
 			}),
 		})
 
+		-- CORREÇÃO: DropdownHolderCanvas com ZIndex alto
 		local DropdownHolderCanvas = New("Frame", {
 			BackgroundTransparency = 1,
 			Size = UDim2.fromOffset(170, 0), -- Começa com altura 0
 			Parent = Library.GUI,
-			Visible = false, -- Começa invisível
+			Visible = false,
 			ZIndex = 50,
-			ClipsDescendants = false,
+			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
 		}, {
 			DropdownHolderFrame,
 			New("UISizeConstraint", {
 				MinSize = Vector2.new(170, 0),
+				ZIndex = 50,
 			}),
 		})
 		table.insert(Library.OpenFrames, DropdownHolderCanvas)
@@ -2830,14 +2835,14 @@ ElementsTable.Dropdown = (function()
 
 		local ListSizeX = 0
 		local function RecalculateListSize()
-			-- CORREÇÃO: Tamanho baseado no número de opções
+			-- CORREÇÃO: Tamanho baseado no conteúdo real
 			local optionCount = #Dropdown.Values
 			local optionHeight = 32
 			local padding = 3
 			local totalPadding = (optionCount - 1) * padding
-			local contentHeight = (optionCount * optionHeight) + totalPadding + 10 -- +10 para margem
+			local contentHeight = (optionCount * optionHeight) + totalPadding + 10
 			
-			local maxHeight = 200 -- Altura máxima reduzida
+			local maxHeight = 150 -- Altura máxima menor para 3 opções
 			local targetHeight = math.min(contentHeight, maxHeight)
 			
 			DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, targetHeight)
@@ -2888,14 +2893,15 @@ ElementsTable.Dropdown = (function()
 			DropdownDisplay.Interactable = Dropdown.Searchable
 			if ScrollFrame then ScrollFrame.ScrollingEnabled = false end
 			
-			-- CORREÇÃO: Garantir que está visível
+			-- CORREÇÃO: Garantir que está visível e com ZIndex alto
 			DropdownHolderCanvas.Visible = true
-			DropdownHolderFrame.BackgroundTransparency = 0.05
+			DropdownHolderCanvas.ZIndex = 50
+			DropdownHolderFrame.ZIndex = 55
+			DropdownScrollFrame.ZIndex = 60
 			
 			RecalculateListPosition()
 			RecalculateListSize()
 			
-			-- CORREÇÃO: Animação de abertura
 			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { 
 				Size = UDim2.fromScale(1, 1) 
 			}):Play()
@@ -2948,7 +2954,6 @@ ElementsTable.Dropdown = (function()
 				closeConnection = nil
 			end
 			
-			-- CORREÇÃO: Fechamento correto
 			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { 
 				Size = UDim2.fromScale(1, 0) 
 			}):Play()
@@ -2985,7 +2990,8 @@ ElementsTable.Dropdown = (function()
 					Size = UDim2.fromOffset(4, 14), 
 					Position = UDim2.fromOffset(-1, 16), 
 					AnchorPoint = Vector2.new(0, 0.5), 
-					ThemeTag = { BackgroundColor3 = "Accent" } 
+					ThemeTag = { BackgroundColor3 = "Accent" },
+					ZIndex = 65, -- CORREÇÃO: ZIndex alto
 				}, { 
 					New("UICorner", { CornerRadius = UDim.new(0, 2) }) 
 				})
@@ -2999,13 +3005,15 @@ ElementsTable.Dropdown = (function()
 					Size = UDim2.fromScale(1, 1), 
 					Position = UDim2.fromOffset(10, 0), 
 					Name = "ButtonLabel", 
-					ThemeTag = { TextColor3 = "Text" } 
+					ThemeTag = { TextColor3 = "Text" },
+					ZIndex = 65, -- CORREÇÃO: ZIndex alto
 				})
 				
+				-- CORREÇÃO: Botão com ZIndex muito alto e tamanho completo
 				local Button = New("TextButton", { 
-					Size = UDim2.new(1, 0, 0, 32),
+					Size = UDim2.new(1, 0, 0, 32), -- Largura total
 					BackgroundTransparency = 1, 
-					ZIndex = 100,
+					ZIndex = 65, -- CORREÇÃO CRÍTICA: ZIndex MUITO ALTO
 					Text = "", 
 					Parent = DropdownScrollFrame,
 					AutoButtonColor = false,
@@ -3013,7 +3021,10 @@ ElementsTable.Dropdown = (function()
 				}, { 
 					ButtonSelector, 
 					ButtonLabel, 
-					New("UICorner", { CornerRadius = UDim.new(0, 6) }) 
+					New("UICorner", { 
+						CornerRadius = UDim.new(0, 6),
+						ZIndex = 65,
+					}) 
 				})
 
 				local function UpdateButton()
@@ -3042,7 +3053,7 @@ ElementsTable.Dropdown = (function()
 						if Dropdown.Value == Value and not Config.AllowNull then return end
 						Dropdown.Value = (Dropdown.Value == Value and nil or Value)
 						for _, otherButton in pairs(Buttons) do otherButton.UpdateButton() end
-						Dropdown:Close() -- CORREÇÃO: Fecha ao selecionar em modo single
+						Dropdown:Close() -- Fecha ao selecionar em modo single
 					end
 					UpdateButton()
 					Dropdown:Display()
