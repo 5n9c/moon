@@ -2836,13 +2836,18 @@ ElementsTable.Dropdown = (function()
 		end
 
 		local ListSizeX = 0
+		--[[ MODIFICAÇÃO ABAIXO ]]--
 		local function RecalculateListSize()
+			-- Adiciona um preenchimento extra para garantir que a área clicável cubra todos os botões.
+			local extraPadding = 15
+	
 			if #Dropdown.Values > 10 then
-				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, 392)
+				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, 392 + extraPadding)
 			else
-				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, DropdownListLayout.AbsoluteContentSize.Y + 10)
+				DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, DropdownListLayout.AbsoluteContentSize.Y + 10 + extraPadding)
 			end
 		end
+		--[[ FIM DA MODIFICAÇÃO ]]--
 
 		local function RecalculateCanvasSize()
 			DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0, DropdownListLayout.AbsoluteContentSize.Y)
@@ -2891,12 +2896,7 @@ ElementsTable.Dropdown = (function()
 					return
 				end
 
-				local AbsPos = DropdownHolderFrame.AbsolutePosition
-				local AbsSize = Vector2.new(
-					DropdownHolderFrame.AbsoluteSize.X,
-					math.max(DropdownHolderFrame.AbsoluteSize.Y, DropdownScrollFrame.CanvasSize.Y.Offset + 20)
-				)
-
+				local AbsPos, AbsSize = DropdownHolderFrame.AbsolutePosition, DropdownHolderFrame.AbsoluteSize
 				if mousePos.X < AbsPos.X or mousePos.X > AbsPos.X + AbsSize.X or mousePos.Y < AbsPos.Y or mousePos.Y > AbsPos.Y + AbsSize.Y then
 					Dropdown:Close()
 				end
