@@ -2853,12 +2853,21 @@ ElementsTable.Dropdown = (function()
 
 		Creator.AddSignal(DropdownInner:GetPropertyChangedSignal("AbsolutePosition"), RecalculateListPosition)
 
+		-- CORREÇÃO RADICAL: Input handling completamente simplificado
+		local isProcessingClick = false
+		
 		Creator.AddSignal(DropdownInner.MouseButton1Click, function()
+			if isProcessingClick then return end
+			isProcessingClick = true
+			
 			if Dropdown.Opened then
 				Dropdown:Close()
 			else
 				Dropdown:Open()
 			end
+			
+			task.wait(0.1)
+			isProcessingClick = false
 		end)
 
 		Creator.AddSignal(DropdownDisplay:GetPropertyChangedSignal("Text"), function()
@@ -2882,42 +2891,36 @@ ElementsTable.Dropdown = (function()
 			end
 		end)
 
-		-- CORREÇÃO: Input handling separado
+		-- CORREÇÃO RADICAL: Input handling super simples
 		local closeConnection
-		local ScrollFrame = self.ScrollFrame
 		
 		function Dropdown:Open()
 			if Dropdown.Opened then return end
 			Dropdown.Opened = true
 			DropdownDisplay.Interactable = Dropdown.Searchable
-			if ScrollFrame then ScrollFrame.ScrollingEnabled = false end
+			if self.ScrollFrame then self.ScrollFrame.ScrollingEnabled = false end
 			DropdownHolderCanvas.Visible = true
 			RecalculateListPosition()
 			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Size = UDim2.fromScale(1, 1) }):Play()
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 0 }):Play()
 			if Dropdown.Searchable then DropdownDisplay:CaptureFocus() end
 			
-			-- CORREÇÃO: Input handling separado
+			-- Input handling MUITO simples
 			if closeConnection then
 				closeConnection:Disconnect()
 			end
+			
 			closeConnection = UserInputService.InputBegan:Connect(function(Input)
-				if Dropdown.Opened and Input.UserInputType == Enum.UserInputType.MouseButton1 then
+				if Input.UserInputType == Enum.UserInputType.MouseButton1 then
 					local mousePos = UserInputService:GetMouseLocation()
 					
-					-- Verifica se clicou dentro do dropdown holder
+					-- Verifica MUITO simplesmente se clicou fora
 					local holderPos = DropdownHolderFrame.AbsolutePosition
 					local holderSize = DropdownHolderFrame.AbsoluteSize
 					local isInsideHolder = mousePos.X >= holderPos.X and mousePos.X <= holderPos.X + holderSize.X and
 										  mousePos.Y >= holderPos.Y and mousePos.Y <= holderPos.Y + holderSize.Y
 					
-					-- Verifica se clicou no botão do dropdown
-					local btnPos, btnSize = DropdownInner.AbsolutePosition, DropdownInner.AbsoluteSize
-					local isInsideButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and 
-										  mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
-
-					-- Só fecha se clicar FORA do dropdown E FORA do botão
-					if not isInsideHolder and not isInsideButton then
+					if not isInsideHolder then
 						Dropdown:Close()
 					end
 				end
@@ -2927,17 +2930,16 @@ ElementsTable.Dropdown = (function()
 		function Dropdown:Close()
 			if not Dropdown.Opened then return end
 			Dropdown.Opened = false
-			if ScrollFrame then ScrollFrame.ScrollingEnabled = true end
+			if self.ScrollFrame then self.ScrollFrame.ScrollingEnabled = true end
 			DropdownDisplay.Interactable = false
 			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 180 }):Play()
 			
-			-- CORREÇÃO: Remove a conexão
 			if closeConnection then
 				closeConnection:Disconnect()
 				closeConnection = nil
 			end
 			
-			task.delay(0, function()
+			task.delay(0.1, function()
 				if not Dropdown.Opened then
 					DropdownHolderCanvas.Visible = false
 					DropdownHolderFrame.Size = UDim2.fromScale(1, 0.6)
@@ -2986,13 +2988,16 @@ ElementsTable.Dropdown = (function()
 					ThemeTag = { TextColor3 = "Text" } 
 				})
 				
+				-- CORREÇÃO RADICAL: Botão MUITO simples
 				local Button = New("TextButton", { 
 					Size = UDim2.new(1, -5, 0, 32), 
 					BackgroundTransparency = 1, 
-					ZIndex = 51, -- CORREÇÃO: ZIndex maior
+					ZIndex = 100, -- ZIndex ALTÍSSIMO
 					Text = "", 
-					Parent = DropdownScrollFrame, 
-					AutoButtonColor = false, -- CORREÇÃO: Desativa AutoButtonColor
+					Parent = DropdownScrollFrame,
+					AutoButtonColor = false,
+					Active = true,
+					Selectable = true,
 					ThemeTag = { BackgroundColor3 = "DropdownOption" } 
 				}, { 
 					ButtonSelector, 
@@ -3007,20 +3012,21 @@ ElementsTable.Dropdown = (function()
 					ButtonSelector.BackgroundTransparency = Selected and 0 or 1
 				end
 				
-				Creator.AddSignal(Button.MouseEnter, function() 
+				-- CORREÇÃO RADICAL: Eventos MUITO simples
+				Button.MouseEnter:Connect(function() 
 					if not Button:GetAttribute("Selected") then 
 						Button.BackgroundTransparency = 0.89 
 					end 
 				end)
 				
-				Creator.AddSignal(Button.MouseLeave, function() 
+				Button.MouseLeave:Connect(function() 
 					if not Button:GetAttribute("Selected") then 
 						Button.BackgroundTransparency = 1 
 					end 
 				end)
 				
-				-- CORREÇÃO: Usar MouseButton1Click
-				Creator.AddSignal(Button.MouseButton1Click, function()
+				-- CORREÇÃO RADICAL: Click MUITO direto
+				Button.MouseButton1Click:Connect(function()
 					if Config.Multi then
 						Dropdown.Value[Value] = not Dropdown.Value[Value]
 					else
