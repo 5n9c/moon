@@ -2769,7 +2769,7 @@ ElementsTable.Dropdown = (function()
 
 		-- CORREÇÃO: ScrollingFrame com tamanho adequado
 		local DropdownScrollFrame = New("ScrollingFrame", {
-			Size = UDim2.new(1, -10, 1, -10), -- Mais espaço interno
+			Size = UDim2.new(1, -10, 1, -10),
 			Position = UDim2.fromOffset(5, 5),
 			BackgroundTransparency = 1,
 			ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255),
@@ -2778,7 +2778,7 @@ ElementsTable.Dropdown = (function()
 			BorderSizePixel = 0,
 			CanvasSize = UDim2.fromScale(0, 0),
 			ScrollingDirection = Enum.ScrollingDirection.Y,
-			AutomaticCanvasSize = Enum.AutomaticSize.Y, -- CORREÇÃO: Tamanho automático
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollBarImageTransparency = 0.8,
 		}, {
 			DropdownListLayout,
@@ -2786,10 +2786,11 @@ ElementsTable.Dropdown = (function()
 
 		-- CORREÇÃO: DropdownHolderFrame com tamanho adequado
 		local DropdownHolderFrame = New("Frame", {
-			Size = UDim2.fromScale(1, 0.6),
-			BackgroundTransparency = 0.95,
+			Size = UDim2.fromScale(1, 0), -- Começa com altura 0
+			BackgroundTransparency = 0.05, -- CORREÇÃO: Visível
 			BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-			ClipsDescendants = false, -- CORREÇÃO IMPORTANTE: Não cortar elementos
+			ClipsDescendants = false,
+			Visible = true, -- CORREÇÃO: Sempre visível
 		}, {
 			DropdownScrollFrame,
 			New("UICorner", {
@@ -2805,11 +2806,11 @@ ElementsTable.Dropdown = (function()
 
 		local DropdownHolderCanvas = New("Frame", {
 			BackgroundTransparency = 1,
-			Size = UDim2.fromOffset(170, 300),
+			Size = UDim2.fromOffset(170, 0), -- Começa com altura 0
 			Parent = Library.GUI,
-			Visible = false,
+			Visible = false, -- Começa invisível
 			ZIndex = 50,
-			ClipsDescendants = false, -- CORREÇÃO: Não cortar elementos
+			ClipsDescendants = false,
 		}, {
 			DropdownHolderFrame,
 			New("UISizeConstraint", {
@@ -2829,21 +2830,23 @@ ElementsTable.Dropdown = (function()
 
 		local ListSizeX = 0
 		local function RecalculateListSize()
-			-- CORREÇÃO: Tamanho baseado no conteúdo real
-			local contentHeight = DropdownListLayout.AbsoluteContentSize.Y + 20
-			local maxHeight = 400
+			-- CORREÇÃO: Tamanho baseado no número de opções
+			local optionCount = #Dropdown.Values
+			local optionHeight = 32
+			local padding = 3
+			local totalPadding = (optionCount - 1) * padding
+			local contentHeight = (optionCount * optionHeight) + totalPadding + 10 -- +10 para margem
+			
+			local maxHeight = 200 -- Altura máxima reduzida
 			local targetHeight = math.min(contentHeight, maxHeight)
 			
 			DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, targetHeight)
-			DropdownHolderFrame.Size = UDim2.fromScale(1, 1) -- Sempre ocupa 100%
+			DropdownHolderFrame.Size = UDim2.fromScale(1, 1)
 		end
 
 		local function RecalculateCanvasSize()
 			DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0, DropdownListLayout.AbsoluteContentSize.Y)
 		end
-
-		RecalculateListPosition()
-		RecalculateListSize()
 
 		Creator.AddSignal(DropdownInner:GetPropertyChangedSignal("AbsolutePosition"), RecalculateListPosition)
 
@@ -2884,11 +2887,25 @@ ElementsTable.Dropdown = (function()
 			Dropdown.Opened = true
 			DropdownDisplay.Interactable = Dropdown.Searchable
 			if ScrollFrame then ScrollFrame.ScrollingEnabled = false end
+			
+			-- CORREÇÃO: Garantir que está visível
 			DropdownHolderCanvas.Visible = true
+			DropdownHolderFrame.BackgroundTransparency = 0.05
+			
 			RecalculateListPosition()
-			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Size = UDim2.fromScale(1, 1) }):Play()
-			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 0 }):Play()
-			if Dropdown.Searchable then DropdownDisplay:CaptureFocus() end
+			RecalculateListSize()
+			
+			-- CORREÇÃO: Animação de abertura
+			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { 
+				Size = UDim2.fromScale(1, 1) 
+			}):Play()
+			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { 
+				Rotation = 0 
+			}):Play()
+			
+			if Dropdown.Searchable then 
+				DropdownDisplay:CaptureFocus() 
+			end
 			
 			if closeConnection then
 				closeConnection:Disconnect()
@@ -2898,12 +2915,18 @@ ElementsTable.Dropdown = (function()
 				if Input.UserInputType == Enum.UserInputType.MouseButton1 then
 					local mousePos = UserInputService:GetMouseLocation()
 					
-					local holderPos = DropdownHolderFrame.AbsolutePosition
-					local holderSize = DropdownHolderFrame.AbsoluteSize
+					local holderPos = DropdownHolderCanvas.AbsolutePosition
+					local holderSize = DropdownHolderCanvas.AbsoluteSize
+					local innerPos = DropdownInner.AbsolutePosition
+					local innerSize = DropdownInner.AbsoluteSize
+					
 					local isInsideHolder = mousePos.X >= holderPos.X and mousePos.X <= holderPos.X + holderSize.X and
 										  mousePos.Y >= holderPos.Y and mousePos.Y <= holderPos.Y + holderSize.Y
 					
-					if not isInsideHolder then
+					local isInsideInner = mousePos.X >= innerPos.X and mousePos.X <= innerPos.X + innerSize.X and
+										  mousePos.Y >= innerPos.Y and mousePos.Y <= innerPos.Y + innerSize.Y
+					
+					if not isInsideHolder and not isInsideInner then
 						Dropdown:Close()
 					end
 				end
@@ -2915,19 +2938,27 @@ ElementsTable.Dropdown = (function()
 			Dropdown.Opened = false
 			if ScrollFrame then ScrollFrame.ScrollingEnabled = true end
 			DropdownDisplay.Interactable = false
-			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Rotation = 180 }):Play()
+			
+			TweenService:Create(DropdownIco, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { 
+				Rotation = 180 
+			}):Play()
 			
 			if closeConnection then
 				closeConnection:Disconnect()
 				closeConnection = nil
 			end
 			
-			task.delay(0.1, function()
+			-- CORREÇÃO: Fechamento correto
+			TweenService:Create(DropdownHolderFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { 
+				Size = UDim2.fromScale(1, 0) 
+			}):Play()
+			
+			task.delay(0.2, function()
 				if not Dropdown.Opened then
 					DropdownHolderCanvas.Visible = false
-					DropdownHolderFrame.Size = UDim2.fromScale(1, 0.6)
 				end
 			end)
+			
 			DropdownDisplay:ReleaseFocus(false)
 			Dropdown:Display()
 		end
@@ -2971,9 +3002,8 @@ ElementsTable.Dropdown = (function()
 					ThemeTag = { TextColor3 = "Text" } 
 				})
 				
-				-- CORREÇÃO: Botão com tamanho adequado
 				local Button = New("TextButton", { 
-					Size = UDim2.new(1, 0, 0, 32), -- Largura total
+					Size = UDim2.new(1, 0, 0, 32),
 					BackgroundTransparency = 1, 
 					ZIndex = 100,
 					Text = "", 
@@ -3012,6 +3042,7 @@ ElementsTable.Dropdown = (function()
 						if Dropdown.Value == Value and not Config.AllowNull then return end
 						Dropdown.Value = (Dropdown.Value == Value and nil or Value)
 						for _, otherButton in pairs(Buttons) do otherButton.UpdateButton() end
+						Dropdown:Close() -- CORREÇÃO: Fecha ao selecionar em modo single
 					end
 					UpdateButton()
 					Dropdown:Display()
@@ -3029,7 +3060,7 @@ ElementsTable.Dropdown = (function()
 					ListSizeX = Button.ButtonLabel.TextBounds.X 
 				end 
 			end
-			ListSizeX = math.max(150, ListSizeX + 40) -- Largura mínima
+			ListSizeX = math.max(150, ListSizeX + 40)
 			
 			RecalculateCanvasSize() 
 			RecalculateListSize()
